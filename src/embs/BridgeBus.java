@@ -1,6 +1,10 @@
 package embs;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.List;
 
 import ptolemy.actor.NoRoomException;
 import ptolemy.actor.TypedAtomicActor;
@@ -18,10 +22,7 @@ public class BridgeBus extends TypedAtomicActor {
   protected TypedIOPort[] inputs;
   protected TypedIOPort output;
   protected Parameter pbandwidth;
-  
-  protected LinkedList<Task> queue1;
-  protected LinkedList<Task> queue2;
-  protected LinkedList<Task> currentQueue;
+  private ArrayList<Task> tempList = new ArrayList<Task>();
   
   private InnerBus[] buses;
   
@@ -52,12 +53,8 @@ public class BridgeBus extends TypedAtomicActor {
     double bandwidth = Double.valueOf(pbandwidth.getValueAsString());
     
     buses = new InnerBus[] {
-        new InnerBus(bandwidth), new InnerBus(bandwidth)
+      new InnerBus(bandwidth), new InnerBus(bandwidth)
     };
-    
-    queue1 = new LinkedList<Task>();
-    queue2 = new LinkedList<Task>();
-    currentQueue = queue1;
   }
   
   
@@ -81,66 +78,62 @@ public class BridgeBus extends TypedAtomicActor {
         RecordToken token = (RecordToken) inputs[i].get(0);
         Task task = new Task(i, token);
         
+        // Tasks on local processor use local memory and should
+        // instantly send
+        // Other task push to the end of the source bus' queue
+        
         if (task.isLocalProcessor())
           send(task);
         else
-          currentQueue.add(task);
+          getSourceBus(task).addTask(task);
         
       }
     }
     
-    checkFinished(buses[0]); checkFinished(buses[1]);
-    
-    
-    if (currentQueue.size() > 0) {
-      System.out.println(currentQueue.size());
+    // Check if any tasks are finished and send them out
+    checkFinished(buses[0]);
+    checkFinished(buses[1]);
 
-      // This is my way of circumventing concurrent modification
-      // and also I'm too lazy to make a proper linked list
+    // Peek the head of both buses, make an array of these two or 
+    // fewer items, sort items based on release-time, start the first
+    // available task
+    
+    ArrayList<Task> taskPair = tempList;
+    taskPair.clear();
+    
+    if (buses[0].peek() != null) taskPair.add(buses[0].peek());
+    if (buses[1].peek() != null) taskPair.add(buses[1].peek());
+    
+    Collections.sort(taskPair);
+    
+    processTaskList(taskPair);
+  }
+  
+  /** Given a list of tasks, start the first one that has free buses */
+  private void processTaskList(List<Task> tasks) {
+    for (Task task : tasks) {
+      // Source and destination bus may be the same
+      // but that's okay
+      boolean srcBusFree = !getSourceBus(task).isBusy();
+      boolean dstBusFree =   !getDestBus(task).isBusy();
       
-      // Swap current and old queue
-      LinkedList<Task> oldQueue = (currentQueue == queue1 ? queue1 : queue2);
-      LinkedList<Task> newQueue = (currentQueue == queue1 ? queue2 : queue1);
-      newQueue.clear();
-      
-      
-      for (Task task : oldQueue) {
-        newQueue.add(task);
-
-        boolean sourceBusFree = !getSourceBus(task).isBusy();
-        boolean destBusFree   =   !getDestBus(task).isBusy();
-        
-        if (sourceBusFree && destBusFree) {
-          startTask(task);
-          newQueue.removeLast();  // remove the task we just added
-        }
+      if (srcBusFree && dstBusFree) {
+        startTask(task);
+        return;
       }
-      
-      currentQueue = newQueue;
     }
-    
-  }
-  
-
-  
-  public InnerBus getSourceBus(Task task) {
-    return task.sourceId < 4 ? buses[0] : buses[1];
-  }
-  public InnerBus getDestBus(Task task) {
-    return task.destId < 4 ? buses[0] : buses[1];
   }
   
   
-  /**
-   * Starts a task on the relevant bus
-   * @param task
-   */
+  /** Starts a task on the relevant bus */
   public void startTask(Task task) {
-    InnerBus source = getSourceBus(task);
-    InnerBus dest = getDestBus(task);
+    // Again source and destination bus may be equal
+    // make sure method still works in this case
+    InnerBus srcBus = getSourceBus(task);
+    InnerBus dstBus =   getDestBus(task);
     
-    double finishTime = source.startTask(getDirector().getModelTime(), task);
-    dest.setBusyUntil(finishTime);
+    Time finishTime = srcBus.startTask(getDirector().getModelTime(), task);
+    dstBus.setBusyUntil(finishTime);
     
     try {
       getDirector().fireAt(this, finishTime);
@@ -149,18 +142,27 @@ public class BridgeBus extends TypedAtomicActor {
     
   }
   
-  /**
-   * Sends a task through the output port
-   * @param task
-   */
+  /** Sends a completed task through the output port */
   public void send(Task task) {
     try {
-      output.send(task.sourceId, task.token);
+      output.send(task.srcId, task.token);
     } catch (NoRoomException e) {
       e.printStackTrace();
     } catch (IllegalActionException e) {
       e.printStackTrace();
     }
+  }
+  
+
+  
+
+  /** Gets the bus based on a tasks source processor **/
+  public InnerBus getSourceBus(Task task) {
+    return task.srcId < 4 ? buses[0] : buses[1];
+  }
+  /** Gets the bus based on a tasks destination processor **/
+  public InnerBus getDestBus(Task task) {
+    return task.dstId < 4 ? buses[0] : buses[1];
   }
   
   

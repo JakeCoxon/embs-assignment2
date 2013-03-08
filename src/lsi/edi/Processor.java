@@ -17,80 +17,80 @@ import ptolemy.kernel.util.NameDuplicationException;
 
 public class Processor extends TypedAtomicActor{
 
-	
-	protected TypedIOPort input;
-	protected TypedIOPort utilisation;
-	protected TypedIOPort discard;
+  
+  protected TypedIOPort input;
+  protected TypedIOPort utilisation;
+  protected TypedIOPort discard;
 
-	protected Time readyTime;
+  protected Time readyTime;
 
-	double util;
-	
-	public Processor(CompositeEntity container, String name)
-	throws NameDuplicationException, IllegalActionException  {
+  double util;
+  
+  public Processor(CompositeEntity container, String name)
+  throws NameDuplicationException, IllegalActionException  {
 
-		super(container, name);
+    super(container, name);
 
-		input = new TypedIOPort(this, "input", true, false);
-		
-		utilisation = new TypedIOPort(this, "utilisation", false, true);
-		utilisation.setTypeEquals(BaseType.DOUBLE);
-		
-		discard = new TypedIOPort(this, "discard", false, true);
-		
-	}
-	
+    input = new TypedIOPort(this, "input", true, false);
+    
+    utilisation = new TypedIOPort(this, "utilisation", false, true);
+    utilisation.setTypeEquals(BaseType.DOUBLE);
+    
+    discard = new TypedIOPort(this, "discard", false, true);
+    
+  }
+  
 
-	public void initialize() throws IllegalActionException{
-		
-		util=0;
-		
-		readyTime = getDirector().getModelTime();
-		utilisation.send(0, new DoubleToken(util));
-		
-		
-	}
-	
-	
-	public void fire() throws IllegalActionException{
+  public void initialize() throws IllegalActionException{
+    
+    util=0;
+    
+    readyTime = getDirector().getModelTime();
+    utilisation.send(0, new DoubleToken(util));
+    
+    
+  }
+  
+  
+  public void fire() throws IllegalActionException{
 
         Time currentTime = getDirector().getModelTime();
 
-		if(currentTime.compareTo(readyTime)>=0){
-			util=0;
+    if(currentTime.compareTo(readyTime)>=0){
+      util=0;
 
-		}
-		
-		if(input.hasToken(0)){
-			
-			Token t = input.get(0);
+    }
+    
+    if(input.hasToken(0)){
+      
+      Token t = input.get(0);
 
-			if(util<100 && t instanceof RecordToken){
-				this.processTask((RecordToken)t, currentTime);
-				
-			}
-			
-			else{discard.send(0, t);}
-			
-		}
-		
-		utilisation.send(0, new DoubleToken(util));
-	}
-	
+      if(util<100 && t instanceof RecordToken){
+        this.processTask((RecordToken)t, currentTime);
+        
+      }
+      
+      else{discard.send(0, t);}
+      
+    }
+    
+    utilisation.send(0, new DoubleToken(util));
+  }
+  
 
-	protected void processTask(RecordToken rt, Time time) throws IllegalActionException{
-		
-		double comptime = ((DoubleToken)rt.get("comptime")).doubleValue();
-		
+  protected void processTask(RecordToken rt, Time time) throws IllegalActionException{
+    
+    double comptime = ((DoubleToken)rt.get("comptime")).doubleValue();
+    
         readyTime = time.add(comptime);
-		getDirector().fireAt(this, readyTime);
-		util=100;
-		
-	}
-	
-	public void pruneDependencies() {
-		super.pruneDependencies();
-		removeDependency(input, utilisation);
-	}
-	
+    getDirector().fireAt(this, readyTime);
+    util=100;
+    
+  }
+  
+  public void pruneDependencies() {
+    super.pruneDependencies();
+    removeDependency(input, utilisation);
+  }
+  
 }

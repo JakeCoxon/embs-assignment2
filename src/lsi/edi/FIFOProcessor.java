@@ -20,63 +20,63 @@ import ptolemy.kernel.util.NameDuplicationException;
 public class FIFOProcessor extends Processor{
 
 
-	protected LinkedList<RecordToken> fifo;
-	protected TypedIOPort queue;
+  protected LinkedList<RecordToken> fifo;
+  protected TypedIOPort queue;
 
 
-	public FIFOProcessor(CompositeEntity container, String name)
-	throws NameDuplicationException, IllegalActionException  {
+  public FIFOProcessor(CompositeEntity container, String name)
+  throws NameDuplicationException, IllegalActionException  {
 
-		super(container, name);
-		
-		queue = new TypedIOPort(this, "queue", false, true);
-		queue.setTypeEquals(BaseType.INT);
+    super(container, name);
+    
+    queue = new TypedIOPort(this, "queue", false, true);
+    queue.setTypeEquals(BaseType.INT);
 
-	}
+  }
 
-	public void initialize() throws IllegalActionException{	
-		super.initialize();
-		fifo=new LinkedList<RecordToken>();
-	}
+  public void initialize() throws IllegalActionException{  
+    super.initialize();
+    fifo=new LinkedList<RecordToken>();
+  }
 
-	public void fire() throws IllegalActionException{
+  public void fire() throws IllegalActionException{
 
-		Time currentTime = getDirector().getModelTime();
+    Time currentTime = getDirector().getModelTime();
 
-		if(currentTime.compareTo(readyTime)>=0){
-			util=0;
+    if(currentTime.compareTo(readyTime)>=0){
+      util=0;
 
-		}
+    }
 
-		if(fifo.size()>0){
-			if(util<100){
-				processTask(fifo.removeFirst(),currentTime);				
-			}
-			
-		}
-		
-		if(input.hasToken(0)){
+    if(fifo.size()>0){
+      if(util<100){
+        processTask(fifo.removeFirst(),currentTime);        
+      }
+      
+    }
+    
+    if(input.hasToken(0)){
 
-			Token t = input.get(0);
-			if(t instanceof RecordToken){ 
-				if(util<100){
-					processTask((RecordToken)t,currentTime);				
-				}
+      Token t = input.get(0);
+      if(t instanceof RecordToken){ 
+        if(util<100){
+          processTask((RecordToken)t,currentTime);        
+        }
 
-				else{fifo.add((RecordToken)t);}
-			}	
-		}
+        else{fifo.add((RecordToken)t);}
+      }  
+    }
 
-		utilisation.send(0, new DoubleToken(util));
-		queue.send(0,new IntToken(fifo.size()));
-	}
-
-
+    utilisation.send(0, new DoubleToken(util));
+    queue.send(0,new IntToken(fifo.size()));
+  }
 
 
-	public void pruneDependencies() {
-		super.pruneDependencies();
-		removeDependency(input, utilisation);
-	}
+
+
+  public void pruneDependencies() {
+    super.pruneDependencies();
+    removeDependency(input, utilisation);
+  }
 
 }

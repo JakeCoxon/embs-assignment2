@@ -12,7 +12,6 @@
 
 \begin{document}
 \title{Assessment Two}
-\author{Jake Coxon}
 \maketitle
 
 \section{}
@@ -40,7 +39,7 @@
 \end{tabular}
 \end{table}
 
-In order the find the consumption rate X of actor I over channel c14 we need to determine the PASS (Periodic Admissible Sequential Schedule).
+In order the find the consumption rate $X$ of actor $I$ over channel c14 we need to determine the PASS (Periodic Admissible Sequential Schedule). Using the above matrix and multiplying by a column vector should equal zero. The consumption rate for each buffer can be found by finding this column vector.
 \[
 \bordermatrix{~ & A & B & \cdots & J \cr
               c1 & 3 & -2 & \cdots & 0 \cr
@@ -54,7 +53,7 @@ In order the find the consumption rate X of actor I over channel c14 we need to 
      j
     \end{array} \right) = 0
 \]
-Which gives
+Which gives the following simultaneous equations.
 \[3a = 2b, 4a = c, 4b = 3d, c = 2d, d = 2a, c = e, 2a = 4f, e = 2g, 8f = 2g,\]
 \[6d = 2g, h = 3i, g = j, i = j, 2e = Xi\]
 And therefore
@@ -65,7 +64,8 @@ We can get values for $a..j$ by finding the least common integer denominator.
 
 \subsection{}
 
-The sequence can be found by summing the number of tokens displaced for each edge.
+The sequence can be found by trial and error. By summing the number of tokens displaced for each edge we can get the current number of tokens in each channel. This number must keep in the range of 0..9 and the number of tokens initially in $c5$ can be modified. By the end of the sequence, the number of firings for each buffer $A..J$ must be equal to $a..j$ that have been found above. Every channel must finish with the same number of tokens as it started so the sequence can be repeated.
+
 \begin{table}[H]
   \centering \tiny
 
@@ -107,6 +107,54 @@ c14 & 4 & 4 & 6 & 2 & 2 & 2 & 2 & 2 & 2 & 2 & 2 & 4 & 4 & 0 & 0 & 2 & 2 & 4 & 4 
 \end{tabular}
 \end{table}
 
+So the end sequence is:
 
+\noindent\code{a.fire(); c.fire(); a.fire(); b.fire(); c.fire(); f.fire(); e.fire(); d.fire(); b.fire(); c.fire(2); e.fire(); h.fire(2); d.fire(); h.fire(); g.fire(); h.fire(2); e.fire(2); g.fire(); i.fire(); h.fire(); b.fire(); c.fire(); e.fire(); i.fire(); c.fire(); d.fire(); j.fire(2); h.fire(3); e.fire(); c.fire(); i.fire(); c.fire(); e.fire(); d.fire(); e.fire(); g.fire(); h.fire(3); i.fire(); j.fire(); g.fire(); j.fire();}
+
+\subsection{}
+The initial number of tokens in the channel $c5$ is four. This is the least number of tokens that makes sure the channel never has negative tokens.
+
+\section{}
+
+\subsection{}
+Code is submitted.
+\code{Assessment2\_withBridge.xml} shows the model with the new BridgeBus class.
+\code{Assessment2\_reducedBandwidth.xml} is the same but with a 290 bandwidth on the BridgeBus actor.
+\code{Assessment2\_improvedMapping.xml} is the same but with an improved mapping and 250 bandwidth.
+Also the VerificationAnalysis actor has been modified to output the missed tasks on a different output but this is not important.
+
+\subsection{}
+Lowering the bandwidth to $250$ sometimes causes a task to miss the deadline which means the model is unschedulable. Anything between $250..300$ is hard to tell whether the model is schedulable or not because we will have to model every possible jitter. The mapping given always uses the second bus for every task so therefore, the model is equivilent to the model with no bus. Because of this, it is impossible to reduce the bandwidth further than in the bus-less model.
+
+\subsection{}
+The mapping can be improved with the Kernighan-Lin algorithm. The edge labels need to be normalized This algorithm can be applied recursively on all sixteen tasks. This is the output that was calculated for each processor.
+
+\begin{table}[H]
+  \centering \small
+  \begin{tabular}{|l|l|l|l||l|l|l|l|}
+    \hline
+p0     & p1   & p2     & p3    & p4   & p5   & p6    & p7 \\ \hline
+14, 15 & 7, 8 & 12, 13 & 9, 10 & 1, 4 & 0, 3 & 2, 11 & 5, 6 \\ \hline
+\end{tabular}
+\end{table}
+
+However the nature of the Kernighan-Lin algorithm always splits the groups into equal sizes which is not a requirement for our purposes. So I can further move tasks around to optimise the mapping.
+
+\begin{table}[H]
+  \centering \small
+  \begin{tabular}{|l|l|l|l||l|l|l|l|}
+    \hline
+p0     & p1      & p2     & p3 & p4   & p5   & p6    & p7 \\ \hline
+14, 15 & 7, 8, 9 & 12, 13 & 10 & 1, 4 & 0, 3 & 2, 11 & 5, 6 \\ \hline
+\end{tabular}
+\end{table}
+
+Using this improved mapping, it seems as though the model is still schedulable with the bandwidth reduced to $250$. It is hard to tell whether the model is really schedulable but I ran the simulation 10 times and it no tasks were missed.
+
+The Kernighan-Lin program used is submitted. Run the \code{AssessmentKernighanLin} class and input \code{taskmapping.txt}
+
+\subsection{}
+
+The definition of schedulability in this assessment says a task's end-to-end latency is \emph{always} less than its period for 30000ms. This is a problem because testing if something is always true is a semi-decidable problem - we can know for sure if the model is \emph{not} schedulable but it is impossible to know if it is.
 
 \end{document}

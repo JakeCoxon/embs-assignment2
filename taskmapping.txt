@@ -1,0 +1,2 @@
+vertices: A B C D E F G H I J K L M N O P
+edges: AF(3.75) BF(3.75) CF(3.75) DF(3.75) EF(3.75) FG(21.875) GJ(21.875) HI(62.5) IJ(62.5) JK(20) KF(2.5) LO(2.5) MO(2.5) NO(2.5) PO(5) OP(5)
